@@ -1,7 +1,7 @@
 /* This file is part of the Pangolin Project.
  * http://github.com/stevenlovegrove/Pangolin
  *
- * Copyright (c) 2011 Steven Lovegrove
+ * Copyright (c) Andrey Mnatsakanov
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -27,37 +27,12 @@
 
 #pragma once
 
-#include <pangolin/platform.h>
-#include <pangolin/windowing/window.h>
-#include <pangolin/windowing/PangolinNSApplication.h>
-#include <pangolin/windowing/PangolinNSGLView.h>
+#include <pybind11/pybind11.h>
 
-namespace pangolin
-{
+namespace py_pangolin {
+  
+  void bind_gltext(pybind11::module &m);
+  
 
-struct OsxWindow : public WindowInterface
-{
-    OsxWindow(const std::string& title, int width, int height, bool USE_RETINA, NSOpenGLPixelFormatAttribute gl_profile);
+}  // py_pangolin
 
-    ~OsxWindow();
-
-    void ShowFullscreen(const TrueFalseToggle on_off) override;
-
-    void Move(int x, int y) override;
-
-    void Resize(unsigned int w, unsigned int h) override;
-
-    void MakeCurrent() override;
-
-    void RemoveCurrent() override;
-
-    void ProcessEvents() override;
-
-    void SwapBuffers() override;
-
-private:
-    NSWindow* _window;
-    PangolinNSGLView *view;
-};
-
-}

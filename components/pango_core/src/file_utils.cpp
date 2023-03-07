@@ -34,10 +34,13 @@
 #    define WIN32_LEAN_AND_MEAN
 #  endif
 #  include <Windows.h>
-#  include <Shlobj.h>
+#  include <shlobj.h>
+#  include <shlwapi.h>
 #  ifdef UNICODE
 #    include <codecvt>
 #  endif
+#  include <io.h>
+#  define access _access_s
 #else
 #  include <dirent.h>
 #  include <sys/types.h>
@@ -49,6 +52,19 @@
 #  include <fcntl.h>
 #  include <errno.h>
 #  include <poll.h>
+
+#  include <limits.h>
+#  include <libgen.h>
+
+#  ifdef __APPLE__
+#    include <mach-o/dyld.h>
+#  else
+#    ifdef __sun
+#      define PROC_SELF_EXE "/proc/self/path/a.out"
+#    else
+#      define PROC_SELF_EXE "/proc/self/exe"
+#    endif
+#  endif // __APPLE__
 #endif // _WIN_
 
 #include <algorithm>
@@ -540,5 +556,69 @@ bool FileExists(const std::string& filename)
 }
 
 #endif //_WIN_
+
+
+
+#ifdef _WIN_
+std::string GetExecutablePath() {
+    char rawPathName[MAX_PATH];
+    GetModuleFileNameA(NULL, rawPathName, MAX_PATH);
+    return std::string(rawPathName);
+}
+
+std::string GetExecutableDir() {
+    std::string executablePath = GetExecutablePath();
+    char* exePath = new char[executablePath.length()];
+    strcpy(exePath, executablePath.c_str());
+    PathRemoveFileSpecA(exePath);
+    std::string directory = std::string(exePath);
+    delete[] exePath;
+    return directory;
+}
+#endif //_WIN_
+
+#ifdef __linux__
+std::string GetExecutablePath() {
+    char rawPathName[PATH_MAX];
+    char* ret = realpath(PROC_SELF_EXE, rawPathName);
+    return (ret == rawPathName) ? std::string(rawPathName) : std::string();
+}
+
+std::string GetExecutableDir() {
+    std::string executablePath = GetExecutablePath();
+    char *executablePathStr = new char[executablePath.length() + 1];
+    strcpy(executablePathStr, executablePath.c_str());
+    char* executableDir = dirname(executablePathStr);
+    delete [] executablePathStr;
+    return std::string(executableDir);
+}
+#endif
+
+#ifdef __APPLE__
+std::string GetExecutablePath() {
+    char rawPathName[PATH_MAX];
+    char realPathName[PATH_MAX];
+    uint32_t rawPathSize = (uint32_t)sizeof(rawPathName);
+
+    if(!_NSGetExecutablePath(rawPathName, &rawPathSize)) {
+        realpath(rawPathName, realPathName);
+    }
+    return  std::string(realPathName);
+}
+
+std::string GetExecutableDir() {
+    std::string executablePath = GetExecutablePath();
+    char *executablePathStr = new char[executablePath.length() + 1];
+    strncpy(executablePathStr, executablePath.c_str(), executablePath.length()+1);
+    char* executableDir = dirname(executablePathStr);
+    delete [] executablePathStr;
+    return std::string(executableDir);
+}
+#endif
+
+
+bool checkIfFileExists (const std::string& filePath) {
+    return access( filePath.c_str(), 0 ) == 0;
+}
 
 }

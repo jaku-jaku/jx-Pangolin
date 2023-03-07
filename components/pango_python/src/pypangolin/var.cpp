@@ -132,6 +132,34 @@ pybind11::object var_t::gui_changed(const std::string &name){
     return pybind11::none();
 }
 
+bool var_t::set_meta(const std::string &name, const PyVarMeta & meta) {
+    std::shared_ptr<pangolin::VarValueGeneric> var = pangolin::VarState::I().GetByName(namespace_prefix+name);
+    if(var) {
+        int flags = pangolin::META_FLAG_NONE;
+        if (meta.toggle) flags |= pangolin::META_FLAG_TOGGLE;
+        if (meta.read_only)  flags |= pangolin::META_FLAG_READONLY;
+        var->Meta().flags = flags;
+        var->Meta().range[0] = meta.low;
+        var->Meta().range[1] = meta.high;
+        var->Meta().logscale = meta.logscale;
+        return true;
+    }
+    return false;
+}
+
+std::optional<PyVarMeta> var_t::get_meta(const std::string &name) {
+   const std::shared_ptr<pangolin::VarValueGeneric> var = pangolin::VarState::I().GetByName(namespace_prefix+name);
+    if(var) {
+        PyVarMeta meta;
+        meta.toggle = var->Meta().flags | pangolin::META_FLAG_TOGGLE;
+        meta.read_only = var->Meta().flags | pangolin::META_FLAG_READONLY;
+        meta.low = var->Meta().range[0];
+        meta.high = var->Meta().range[1];
+        meta.logscale = var->Meta().logscale;
+        return meta;
+    }
+    return {};
+}
     
 std::vector<std::string>& var_t::get_members(){
     return members;
@@ -169,13 +197,20 @@ void bind_var(pybind11::module& m){
       pybind11::arg("high") = 1.0, 
       pybind11::arg("logscale") = false, 
       pybind11::arg("toggle") = false,
-      pybind11::arg("read_only") = false);
+      pybind11::arg("read_only") = false)
+      .def_readwrite("low", &PyVarMeta::low)
+      .def_readwrite("high", &PyVarMeta::high)
+      .def_readwrite("logscale", &PyVarMeta::logscale)
+      .def_readwrite("toggle", &PyVarMeta::toggle)
+      .def_readwrite("read_only", &PyVarMeta::read_only);
 
   pybind11::class_<py_pangolin::var_t> varClass(m, "Var");
     varClass.def(pybind11::init<const std::string &>())
       .def("__members__", &py_pangolin::var_t::get_members)
       .def("__getattr__", &py_pangolin::var_t::get_attr)
-      .def("GuiChanged", &py_pangolin::var_t::gui_changed);
+      .def("GuiChanged", &py_pangolin::var_t::gui_changed)
+      .def("SetMeta", &py_pangolin::var_t::set_meta)
+      .def("GetMeta", &py_pangolin::var_t::get_meta);
 
   VarBinder<bool, int, double, std::string, std::function<void(void)> >::Bind(varClass);
 

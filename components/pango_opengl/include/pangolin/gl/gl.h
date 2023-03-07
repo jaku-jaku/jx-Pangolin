@@ -92,6 +92,9 @@ public:
 
     void Load(const TypedImage& image, bool sampling_linear = true);
 
+    template<typename T>
+    void Load(const Image<T>& image, bool sampling_linear = true);
+
     void LoadFromFile(const std::string& filename, bool sampling_linear = true);
 
     void Download(void* image, GLenum data_layout = GL_LUMINANCE, GLenum data_type = GL_FLOAT) const;
@@ -246,6 +249,9 @@ struct PANGOLIN_EXPORT GlBuffer : public GlBufferData
     void Reinitialise(GlBuffer const& other );
     void Resize(GLuint num_elements);
 
+    template<typename Scalar>
+    GlBuffer(GlBufferType buffer_type, const std::vector<Scalar>& data, GLenum gluse = GL_STATIC_DRAW);
+
 #ifdef USE_EIGEN
     template<typename Scalar, int R, int C>
     GlBuffer(GlBufferType buffer_type, const std::vector<Eigen::Matrix<Scalar, R,C>>& data, GLenum gluse = GL_STATIC_DRAW);
@@ -282,6 +288,28 @@ protected:
     size_t NextSize(size_t min_size) const;
     
     size_t  m_num_verts;    
+};
+
+class PANGOLIN_EXPORT GlVertexArrayObject
+{
+public:
+    GlVertexArrayObject();
+    ~GlVertexArrayObject();
+
+    void Bind() const;
+
+    void Unbind() const;
+
+    void AddVertexAttrib(
+        GLuint attrib_location,
+        const GlBuffer& bo,
+        size_t offset_bytes = 0,
+        size_t stride_bytes = 0,
+        GLboolean normalized = GL_FALSE
+    );
+
+protected:
+    GLuint vao;
 };
 
 size_t GlFormatChannels(GLenum data_layout);
